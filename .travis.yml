@@ -1,0 +1,3 @@
+language: go
+script: bash <(curl -sL https://gist.github.com/emersion/49d4dda535497002639626bd9e16480c/raw/codecov-go.sh)
+after_script: bash <(curl -s https://codecov.io/bash)

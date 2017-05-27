@@ -1,5 +1,8 @@
 # go-jsonld
 
+[![GoDoc](https://godoc.org/github.com/emersion/go-jsonld?status.svg)](https://godoc.org/github.com/emersion/go-jsonld)
+[![Build Status](https://travis-ci.org/emersion/go-jsonld.svg?branch=master)](https://travis-ci.org/emersion/go-jsonld)
+
 A Go library for [JSON-LD](https://www.w3.org/TR/json-ld/).
 
 ## Usage
