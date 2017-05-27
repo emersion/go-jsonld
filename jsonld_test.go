@@ -111,13 +111,13 @@ const example20 = `{
 
 func TestCreateValue(t *testing.T) {
 	var m map[string]interface{}
-	if err := json.Unmarshal([]byte(example20), &m); err != nil {
+	if err := json.Unmarshal([]byte(example13), &m); err != nil {
 		t.Fatalf("json.Unmarshal() = %v", err)
 	}
 
-	v, err := createValue(nil, m, "")
+	v, err := parseValue(nil, m, "")
 	if err != nil {
-		t.Fatalf("createValue() = %v", err)
+		t.Fatalf("parseValue() = %v", err)
 	}
 
 	t.Log(v)

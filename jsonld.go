@@ -28,13 +28,35 @@ type Context struct {
 	Terms map[string]*Node
 }
 
-func (ctx *Context) createChild(m map[string]interface{}) (*Context, error) {
-	child := &Context{Terms: make(map[string]*Node)}
+func (ctx *Context) newChild(child *Context) *Context {
+	if child == nil {
+		child = new(Context)
+	}
+	if child.Terms == nil {
+		child.Terms = make(map[string]*Node)
+	}
 	if ctx != nil {
+		if child.Lang == "" {
+			child.Lang = ctx.Lang
+		}
+		if child.Base == "" {
+			child.Base = ctx.Base
+		}
+		if child.Vocab == "" {
+			child.Vocab = ctx.Vocab
+		}
+
 		for k, v := range ctx.Terms {
-			child.Terms[k] = v
+			if _, ok := child.Terms[k]; !ok {
+				child.Terms[k] = v
+			}
 		}
 	}
+	return child
+}
+
+func (ctx *Context) parseChild(m map[string]interface{}) (*Context, error) {
+	child := ctx.newChild(nil)
 
 	if lang, ok := m["@lang"].(string); ok {
 		child.Lang = lang
@@ -51,7 +73,7 @@ func (ctx *Context) createChild(m map[string]interface{}) (*Context, error) {
 			continue
 		}
 
-		v, err := createValue(nil, v, "")
+		v, err := parseValue(nil, v, "")
 		if err != nil {
 			return nil, err
 		}
@@ -106,7 +128,7 @@ type Node struct {
 	Props Props
 }
 
-func createValue(ctx *Context, v interface{}, t string) (interface{}, error) {
+func parseValue(ctx *Context, v interface{}, t string) (interface{}, error) {
 	m, ok := v.(map[string]interface{})
 	if ok {
 		v = m["@value"]
@@ -119,7 +141,7 @@ func createValue(ctx *Context, v interface{}, t string) (interface{}, error) {
 	switch t {
 	case "@id":
 		if m != nil {
-			return createNode(ctx, m)
+			return parseNode(ctx, m)
 		}
 		if s, ok := v.(string); ok {
 			return &Node{ID: s}, nil
@@ -166,21 +188,22 @@ func createValue(ctx *Context, v interface{}, t string) (interface{}, error) {
 		}
 	default:
 		if m != nil {
-			return createNode(ctx, m)
+			return parseNode(ctx, m)
 		} else {
 			return v, nil
 		}
 	}
 }
 
-func createNode(ctx *Context, m map[string]interface{}) (*Node, error) {
+func parseNode(ctx *Context, m map[string]interface{}) (*Node, error) {
 	n := &Node{Props: make(Props)}
 
 	if rawCtx, ok := m["@context"]; ok {
+		// TODO: string, array
 		switch rawCtx := rawCtx.(type) {
 		case map[string]interface{}:
 			var err error
-			ctx, err = ctx.createChild(rawCtx)
+			ctx, err = ctx.parseChild(rawCtx)
 			if err != nil {
 				return n, err
 			}
@@ -224,13 +247,18 @@ func createNode(ctx *Context, m map[string]interface{}) (*Node, error) {
 			}
 		}
 
-		// TODO: arrays
-
-		vv, err := createValue(ctx, v, t)
-		if err != nil {
-			return n, err
+		values, ok := v.([]interface{})
+		if !ok {
+			values = []interface{}{v}
 		}
-		n.Props[k] = append(n.Props[k], vv)
+
+		for _, v := range values {
+			vv, err := parseValue(ctx, v, t)
+			if err != nil {
+				return n, err
+			}
+			n.Props[k] = append(n.Props[k], vv)
+		}
 	}
 
 	return n, nil
