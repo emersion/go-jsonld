@@ -1,9 +1,30 @@
 package jsonld
 
 import (
-	"encoding/json"
+	"reflect"
 	"testing"
 )
+
+type person struct {
+	ID string `jsonld:"@id"`
+	Name string `jsonld:"http://schema.org/name"`
+	URL *Resource `jsonld:"http://schema.org/url"`
+	Image *Resource `jsonld:"http://schema.org/image"`
+}
+
+type restaurant struct {
+	ID string `jsonld:"@id"`
+	Name string `jsonld:"http://schema.org/name"`
+	DatabaseID string `jsonld:"databaseId"`
+}
+
+type foafPerson struct {
+	JSONLDType Type `jsonld:"http://xmlns.com/foaf/0.1/Person"`
+	ID string `jsonld:"@id"`
+	Name string `jsonld:"http://xmlns.com/foaf/0.1/name"`
+	Homepage *Resource `jsonld:"http://xmlns.com/foaf/0.1/homepage"`
+	Depiction *Resource `jsonld:"http://xmlns.com/foaf/0.1/depiction"`
+}
 
 const example2 = `{
   "http://schema.org/name": "Manu Sporny",
@@ -11,6 +32,13 @@ const example2 = `{
   "http://schema.org/image": { "@id": "http://manu.sporny.org/images/manu.png" }
 }`
 
+var example2Out = &person{
+	Name: "Manu Sporny",
+	URL: &Resource{ID: "http://manu.sporny.org/"},
+	Image: &Resource{ID: "http://manu.sporny.org/images/manu.png"},
+}
+
+// TODO
 const example4 = `{
   "@context": "http://json-ld.org/contexts/person.jsonld",
   "name": "Manu Sporny",
@@ -36,6 +64,9 @@ const example5 = `{
   "image": "http://manu.sporny.org/images/manu.png"
 }`
 
+var example5Out = example2Out
+
+// TODO
 const example9 = `{
   "@context":
   {
@@ -44,6 +75,18 @@ const example9 = `{
   "name": "Manu Sporny",
   "status": "trollin'"
 }`
+
+type personWithStatus struct {
+	person
+	Status string `jsonld:"status"`
+}
+
+var example9Out = &personWithStatus{
+	person: person{
+		Name: "Manu Sporny",
+	},
+	Status: "trollin'",
+}
 
 const example11 = `{
   "@context":
@@ -54,11 +97,21 @@ const example11 = `{
   "name": "Markus Lanthaler"
 }`
 
+var example11Out = &person{
+	ID: "http://me.markus-lanthaler.com/",
+	Name: "Markus Lanthaler",
+}
+
 const example12 = `{
   "@id": "http://example.org/places#BrewEats",
   "@type": "http://schema.org/Restaurant"
 }`
 
+var example12Out = &restaurant{
+	ID: "http://example.org/places#BrewEats",
+}
+
+// TODO
 const example13 = `{
   "@id": "http://example.org/places#BrewEats",
   "@type": [ "http://schema.org/Restaurant", "http://schema.org/Brewery" ]
@@ -73,6 +126,11 @@ const example17 = `{
   "name": "Brew Eats"
 }`
 
+var example17Out = &restaurant{
+	ID: "http://example.org/places#BrewEats",
+	Name: "Brew Eats",
+}
+
 const example18 = `{
   "@context":
   {
@@ -85,6 +143,12 @@ const example18 = `{
   "databaseId": "23987520"
 }`
 
+var example18Out = &restaurant{
+	ID: "http://example.org/places#BrewEats",
+	Name: "Brew Eats",
+	DatabaseID: "23987520",
+}
+
 const example19 = `{
   "@context":
   {
@@ -93,6 +157,11 @@ const example19 = `{
   "@type": "foaf:Person",
   "foaf:name": "Dave Longley"
 }`
+
+var example19Out = &foafPerson{
+	JSONLDType: Type{URI: "http://xmlns.com/foaf/0.1/Person"},
+	Name: "Dave Longley",
+}
 
 const example20 = `{
   "@context":
@@ -109,33 +178,68 @@ const example20 = `{
   "picture": "http://twitter.com/account/profile_image/markuslanthaler"
 }`
 
-func TestParseValue(t *testing.T) {
-	var m map[string]interface{}
-	if err := json.Unmarshal([]byte(example13), &m); err != nil {
-		t.Fatalf("json.Unmarshal() = %v", err)
-	}
-
-	v, err := parseValue(nil, m, "")
-	if err != nil {
-		t.Fatalf("parseValue() = %v", err)
-	}
-
-	t.Log(v)
+var example20Out = &foafPerson{
+	JSONLDType: Type{URI: "http://xmlns.com/foaf/0.1/Person"},
+	ID: "http://me.markus-lanthaler.com/",
+	Name: "Markus Lanthaler",
+	Homepage: &Resource{ID: "http://www.markus-lanthaler.com/"},
+	Depiction: &Resource{ID: "http://twitter.com/account/profile_image/markuslanthaler"},
 }
 
-type person struct {
-	JSONLDType Type `jsonld:"http://xmlns.com/foaf/0.1/Person"`
-	ID string `jsonld:"@id"`
-	Name string `jsonld:"http://xmlns.com/foaf/0.1/name"`
-	Homepage *Resource `jsonld:"http://xmlns.com/foaf/0.1/homepage"`
-	Depiction *Resource `jsonld:"http://xmlns.com/foaf/0.1/depiction"`
+var unmarshalTests = []struct{
+	jsonld string
+	in interface{}
+	out interface{}
+}{
+	{
+		jsonld: example2,
+		in: &person{},
+		out: example2Out,
+	},
+	{
+		jsonld: example5,
+		in: &person{},
+		out: example5Out,
+	},
+	{
+		jsonld: example11,
+		in: &person{},
+		out: example11Out,
+	},
+	{
+		jsonld: example12,
+		in: &restaurant{},
+		out: example12Out,
+	},
+	{
+		jsonld: example17,
+		in: &restaurant{},
+		out: example17Out,
+	},
+	{
+		jsonld: example18,
+		in: &restaurant{},
+		out: example18Out,
+	},
+	{
+		jsonld: example19,
+		in: &foafPerson{},
+		out: example19Out,
+	},
+	{
+		jsonld: example20,
+		in: &foafPerson{},
+		out: example20Out,
+	},
 }
 
 func TestUnmarshal(t *testing.T) {
-	var p person
-	if err := Unmarshal([]byte(example20), &p); err != nil {
-		t.Fatalf("unmarshalResource() = %v", err)
+	for _, test := range unmarshalTests {
+		v := test.in
+		if err := Unmarshal([]byte(test.jsonld), v); err != nil {
+			t.Errorf("unmarshalResource(%v) = %v", test.jsonld, err)
+		} else if !reflect.DeepEqual(test.out, v) {
+			t.Errorf("unmarshalResource(%v) = %#v, want %#v", test.jsonld, v, test.out)
+		}
 	}
-
-	t.Logf("%#v", &p)
 }

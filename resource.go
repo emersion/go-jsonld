@@ -12,7 +12,7 @@ type Resource struct {
 }
 
 func parseResource(ctx *Context, m map[string]interface{}) (*Resource, error) {
-	n := &Resource{Props: make(Props)}
+	n := new(Resource)
 
 	if rawCtx, ok := m["@context"]; ok {
 		// TODO: string, array
@@ -72,6 +72,9 @@ func parseResource(ctx *Context, m map[string]interface{}) (*Resource, error) {
 			vv, err := parseValue(ctx, v, t)
 			if err != nil {
 				return n, err
+			}
+			if n.Props == nil {
+				n.Props = make(Props)
 			}
 			n.Props[k] = append(n.Props[k], vv)
 		}
