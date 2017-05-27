@@ -39,6 +39,14 @@ var example2Out = &person{
 	Image: &Resource{ID: "http://manu.sporny.org/images/manu.png"},
 }
 
+var example2Resource = &Resource{
+	Props: Props{
+		"http://schema.org/name": {"Manu Sporny"},
+		"http://schema.org/url": {&Resource{ID: "http://manu.sporny.org/"}},
+		"http://schema.org/image": {&Resource{ID: "http://manu.sporny.org/images/manu.png"}},
+	},
+}
+
 // TODO
 const example4 = `{
   "@context": "http://json-ld.org/contexts/person.jsonld",
@@ -194,6 +202,11 @@ var unmarshalTests = []struct{
 }{
 	{
 		jsonld: example2,
+		in: &Resource{},
+		out: example2Resource,
+	},
+	{
+		jsonld: example2,
 		in: &person{},
 		out: example2Out,
 	},
@@ -249,6 +262,10 @@ var marshalTests = []struct{
 	jsonld string
 	in interface{}
 }{
+	{
+		jsonld: example2,
+		in: example2Resource,
+	},
 	{
 		jsonld: example2,
 		in: example2Out,
