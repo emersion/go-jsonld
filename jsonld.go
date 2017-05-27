@@ -1,3 +1,5 @@
+// Package jsonld implements JSON-LD, as defined in
+// https://www.w3.org/TR/json-ld/.
 package jsonld
 
 import (
