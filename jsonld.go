@@ -129,12 +129,19 @@ type Node struct {
 }
 
 func parseValue(ctx *Context, v interface{}, t string) (interface{}, error) {
+	// Type embedded in value
 	m, ok := v.(map[string]interface{})
 	if ok {
 		v = m["@value"]
 		if t == "" {
-			// TODO: arrays
-			t, _ = m["@type"].(string)
+			switch rawType := m["@type"].(type) {
+			case string:
+				t = rawType
+			case []interface{}:
+				if len(rawType) > 0 {
+					t, _ = rawType[0].(string)
+				}
+			}
 		}
 	}
 
@@ -190,6 +197,7 @@ func parseValue(ctx *Context, v interface{}, t string) (interface{}, error) {
 		if m != nil {
 			return parseNode(ctx, m)
 		} else {
+			// No type info, return raw JSON value
 			return v, nil
 		}
 	}
