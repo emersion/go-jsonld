@@ -84,6 +84,12 @@ func unmarshalResource(r *Resource, v reflect.Value) error {
 
 	t := v.Type()
 
+	if t == reflect.TypeOf(Resource{}) {
+		// TODO: do not copy value
+		v.Set(reflect.ValueOf(*r))
+		return nil
+	}
+
 	for i := 0; i < t.NumField(); i++ {
 		f := v.Field(i)
 		ft := t.Field(i)
@@ -95,15 +101,21 @@ func unmarshalResource(r *Resource, v reflect.Value) error {
 
 		if k == "@id" {
 			f.SetString(r.ID)
-			continue
-		}
+		} else {
+			fv := r.Props.Get(k)
+			if fv == nil {
+				continue
+			}
 
-		// TODO: support types that aren't strings
-		switch v := r.Props.Get(k).(type) {
-		case string:
-			f.SetString(v)
-		case *Resource:
-			f.SetString(v.ID)
+			if f.Kind() == reflect.Ptr {
+				if f.IsNil() {
+					f.Set(reflect.New(f.Type().Elem()))
+				}
+				f = reflect.Indirect(f)
+			}
+			if err := unmarshalValue(fv, f); err != nil {
+				return err
+			}
 		}
 	}
 

@@ -119,7 +119,7 @@ func Unmarshal(b []byte, v interface{}) error {
 	}
 
 	rv := reflect.ValueOf(v)
-	if rv.Kind() != reflect.Ptr {
+	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return errors.New("jsonld: cannot unmarshal non-pointer")
 	}
 

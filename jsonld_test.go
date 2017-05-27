@@ -126,8 +126,8 @@ func TestParseValue(t *testing.T) {
 type person struct {
 	ID string `jsonld:"@id"`
 	Name string `jsonld:"http://xmlns.com/foaf/0.1/name"`
-	Homepage string `jsonld:"http://xmlns.com/foaf/0.1/homepage"`
-	Depiction string `jsonld:"http://xmlns.com/foaf/0.1/depiction"`
+	Homepage *Resource `jsonld:"http://xmlns.com/foaf/0.1/homepage"`
+	Depiction *Resource `jsonld:"http://xmlns.com/foaf/0.1/depiction"`
 }
 
 func TestUnmarshal(t *testing.T) {
