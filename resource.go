@@ -83,6 +83,32 @@ func parseResource(ctx *Context, m map[string]interface{}) (*Resource, error) {
 	return n, nil
 }
 
+func formatResource(r *Resource) (map[string]interface{}, error) {
+	m := make(map[string]interface{})
+
+	if r.ID != "" {
+		m["@id"] = r.ID
+	}
+
+	for k, values := range r.Props {
+		if k == propType {
+			k = "@type"
+		}
+
+		var err error
+		if len(values) == 1 {
+			m[k], err = formatValue(values[0])
+		} else {
+			m[k], err = formatValue(values)
+		}
+		if err != nil {
+			return m, err
+		}
+	}
+
+	return m, nil
+}
+
 func unmarshalResource(r *Resource, v reflect.Value) error {
 	// TODO: do not panic
 

@@ -103,6 +103,15 @@ func parseValue(ctx *Context, v interface{}, t string) (interface{}, error) {
 	}
 }
 
+func formatValue(v interface{}) (interface{}, error) {
+	switch v := v.(type) {
+	case *Resource:
+		return formatResource(v)
+	default:
+		return v, nil // TODO
+	}
+}
+
 func unmarshalValue(src interface{}, dst reflect.Value) error {
 	switch src := src.(type) {
 	case *Resource:
@@ -155,4 +164,17 @@ func Unmarshal(b []byte, v interface{}) error {
 	}
 
 	return unmarshalValue(parsed, reflect.Indirect(rv))
+}
+
+// Marshal returns the JSON-LD encoding of v.
+//
+// Marshal uses the smae rules as the encoding/json package, except for
+// *Resource values.
+func Marshal(v interface{}) ([]byte, error) {
+	raw, err := formatValue(v)
+	if err != nil {
+		return nil, err
+	}
+
+	return json.Marshal(raw)
 }
