@@ -2,6 +2,7 @@ package jsonld
 
 import (
 	"errors"
+	"reflect"
 )
 
 type Resource struct {
@@ -76,4 +77,35 @@ func parseResource(ctx *Context, m map[string]interface{}) (*Resource, error) {
 	}
 
 	return n, nil
+}
+
+func unmarshalResource(r *Resource, v reflect.Value) error {
+	// TODO: do not panic
+
+	t := v.Type()
+
+	for i := 0; i < t.NumField(); i++ {
+		f := v.Field(i)
+		ft := t.Field(i)
+
+		k := ft.Name
+		if tag := ft.Tag.Get("jsonld"); tag != "" {
+			k = tag
+		}
+
+		if k == "@id" {
+			f.SetString(r.ID)
+			continue
+		}
+
+		// TODO: support types that aren't strings
+		switch v := r.Props.Get(k).(type) {
+		case string:
+			f.SetString(v)
+		case *Resource:
+			f.SetString(v.ID)
+		}
+	}
+
+	return nil
 }

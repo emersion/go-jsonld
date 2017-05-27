@@ -109,7 +109,7 @@ const example20 = `{
   "picture": "http://twitter.com/account/profile_image/markuslanthaler"
 }`
 
-func TestCreateValue(t *testing.T) {
+func TestParseValue(t *testing.T) {
 	var m map[string]interface{}
 	if err := json.Unmarshal([]byte(example13), &m); err != nil {
 		t.Fatalf("json.Unmarshal() = %v", err)
@@ -121,4 +121,20 @@ func TestCreateValue(t *testing.T) {
 	}
 
 	t.Log(v)
+}
+
+type person struct {
+	ID string `jsonld:"@id"`
+	Name string `jsonld:"http://xmlns.com/foaf/0.1/name"`
+	Homepage string `jsonld:"http://xmlns.com/foaf/0.1/homepage"`
+	Depiction string `jsonld:"http://xmlns.com/foaf/0.1/depiction"`
+}
+
+func TestUnmarshal(t *testing.T) {
+	var p person
+	if err := Unmarshal([]byte(example20), &p); err != nil {
+		t.Fatalf("unmarshalResource() = %v", err)
+	}
+
+	t.Logf("%#v", &p)
 }

@@ -3,6 +3,7 @@ package jsonld
 import (
 	"encoding/json"
 	"errors"
+	"reflect"
 )
 
 const (
@@ -93,4 +94,34 @@ func parseValue(ctx *Context, v interface{}, t string) (interface{}, error) {
 			return v, nil
 		}
 	}
+}
+
+func unmarshalValue(src interface{}, dst reflect.Value) error {
+	// TODO: do not panic
+	switch src := src.(type) {
+	case *Resource:
+		return unmarshalResource(src, dst)
+	default:
+		dst.Set(reflect.ValueOf(src))
+		return nil
+	}
+}
+
+func Unmarshal(b []byte, v interface{}) error {
+	var raw interface{}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return err
+	}
+
+	parsed, err := parseValue(nil, raw, "")
+	if err != nil {
+		return err
+	}
+
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Ptr {
+		return errors.New("jsonld: cannot unmarshal non-pointer")
+	}
+
+	return unmarshalValue(parsed, reflect.Indirect(rv))
 }
