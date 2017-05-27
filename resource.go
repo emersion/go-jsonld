@@ -2,6 +2,7 @@ package jsonld
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 )
 
@@ -99,7 +100,15 @@ func unmarshalResource(r *Resource, v reflect.Value) error {
 			k = tag
 		}
 
-		if k == "@id" {
+		if ft.Name == "JSONLDType" && f.Type() == reflect.TypeOf(Type{}) {
+			typeURI := r.Props.Type()
+			if tag := ft.Tag.Get("jsonld"); tag != "" {
+				if tag != typeURI {
+					return fmt.Errorf("jsonld: mismatched type %v", tag)
+				}
+			}
+			f.Set(reflect.ValueOf(Type{typeURI}))
+		} else if k == "@id" {
 			f.SetString(r.ID)
 		} else {
 			fv := r.Props.Get(k)

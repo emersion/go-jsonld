@@ -9,3 +9,8 @@ func (p Props) Get(k string) interface{} {
 	}
 	return v[0]
 }
+
+func (p Props) Type() string {
+	t, _ := p.Get(propType).(string)
+	return t
+}

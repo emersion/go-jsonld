@@ -124,6 +124,7 @@ func TestParseValue(t *testing.T) {
 }
 
 type person struct {
+	JSONLDType Type `jsonld:"http://xmlns.com/foaf/0.1/Person"`
 	ID string `jsonld:"@id"`
 	Name string `jsonld:"http://xmlns.com/foaf/0.1/name"`
 	Homepage *Resource `jsonld:"http://xmlns.com/foaf/0.1/homepage"`
