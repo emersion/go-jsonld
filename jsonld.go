@@ -103,10 +103,10 @@ func parseValue(ctx *Context, v interface{}, t string) (interface{}, error) {
 	}
 }
 
-func formatValue(v interface{}) (interface{}, error) {
+func formatValue(v interface{}, ctx *Context) (interface{}, error) {
 	switch v := v.(type) {
 	case *Resource:
-		return formatResource(v)
+		return formatResource(v, ctx)
 	default:
 		return v, nil
 	}
@@ -134,7 +134,7 @@ func marshalValue(v reflect.Value) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		return formatResource(r)
+		return r, nil
 	case reflect.Ptr:
 		if v.IsNil() {
 			return nil, nil
@@ -189,14 +189,34 @@ func Unmarshal(b []byte, v interface{}) error {
 // Marshal uses the smae rules as the encoding/json package, except for
 // Resource values.
 func Marshal(v interface{}) ([]byte, error) {
+	return MarshalWithContext(v, nil)
+}
+
+// MarshalWithContext returns the JSON-LD encoding of v with the context ctx.
+func MarshalWithContext(v interface{}, ctx *Context) ([]byte, error) {
 	raw, err := marshalValue(reflect.ValueOf(v))
 	if err != nil {
 		return nil, err
 	}
 
-	formatted, err := formatValue(raw)
+	formatted, err := formatValue(raw, ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if ctx != nil {
+		formattedCtx, err := formatContext(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if m, ok := formatted.(map[string]interface{}); ok {
+			m["@context"] = formattedCtx
+		} else {
+			formatted = map[string]interface{}{
+				"@context": formattedCtx,
+				"@value": formatted,
+			}
+		}
 	}
 
 	return json.Marshal(formatted)

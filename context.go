@@ -96,3 +96,59 @@ func (ctx *Context) expand(u string) string {
 		return ctx.Vocab + u
 	}
 }
+
+func (ctx *Context) reduce(u string) (reduced string, term *Resource) {
+	if ctx == nil {
+		return u, nil
+	}
+
+	for k, term := range ctx.Terms {
+		if len(k) > 0 && k[0] == '@' {
+			continue
+		}
+		if term.ID == u {
+			return k, term
+		}
+		if term.ID != "" && strings.HasPrefix(u, term.ID) {
+			return k + ":" + strings.TrimPrefix(u, term.ID), nil
+		}
+	}
+
+	if ctx.Vocab != "" && strings.HasPrefix(u, ctx.Vocab) {
+		return strings.TrimPrefix(u, ctx.Vocab), nil
+	}
+
+	return u, nil
+}
+
+func formatContext(ctx *Context) (interface{}, error) {
+	if ctx == nil {
+		return nil, nil
+	}
+
+	m := make(map[string]interface{})
+
+	if ctx.Lang != "" {
+		m["@lang"] = ctx.Lang
+	}
+	if ctx.Base != "" {
+		m["@base"] = ctx.Base
+	}
+	if ctx.Vocab != "" {
+		m["@vocab"] = ctx.Vocab
+	}
+
+	for k, term := range ctx.Terms {
+		if len(term.Props) == 0 {
+			m[k] = term.ID
+		} else {
+			raw, err := formatResource(term, ctx)
+			if err != nil {
+				return m, err
+			}
+			m[k] = raw
+		}
+	}
+
+	return m, nil
+}

@@ -15,6 +15,16 @@ func (p Props) Type() string {
 	return t
 }
 
+func (p Props) hasType(t string) bool {
+	for _, v := range p[propType] {
+		s, _ := v.(string)
+		if s == t {
+			return true
+		}
+	}
+	return false
+}
+
 func (p Props) Set(k string, v interface{}) {
 	p[k] = []interface{}{v}
 }

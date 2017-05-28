@@ -261,6 +261,7 @@ func TestUnmarshal(t *testing.T) {
 var marshalTests = []struct{
 	jsonld string
 	in interface{}
+	ctx *Context
 }{
 	{
 		jsonld: example2,
@@ -270,18 +271,35 @@ var marshalTests = []struct{
 		jsonld: example2,
 		in: example2Out,
 	},
+	{
+		jsonld: example5,
+		in: example5Out,
+		ctx: &Context{
+			Terms: map[string]*Resource{
+				"name": {ID: "http://schema.org/name"},
+				"image": {
+					ID: "http://schema.org/image",
+					Props: Props{propType: {"@id"}},
+				},
+				"homepage": {
+					ID: "http://schema.org/url",
+					Props: Props{propType: {"@id"}},
+				},
+			},
+		},
+	},
 }
 
-func TestMarshal(t *testing.T) {
+func TestMarshalWithContext(t *testing.T) {
 	for _, test := range marshalTests {
 		var want interface{}
 		if err := json.Unmarshal([]byte(test.jsonld), &want); err != nil {
 			t.Fatalf("json.Unmarshal(want = %v) = %v", test.jsonld, err)
 		}
 
-		b, err := Marshal(test.in)
+		b, err := MarshalWithContext(test.in, test.ctx)
 		if err != nil {
-			t.Errorf("Marshal(%#v) = %v", test.in, err)
+			t.Errorf("MarshalWithContext(%#v, %#v) = %v", test.in, test.ctx, err)
 		} else {
 			var v interface{}
 			if err := json.Unmarshal(b, &v); err != nil {
@@ -289,7 +307,7 @@ func TestMarshal(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(v, want) {
-				t.Errorf("Marshal(%#v) = %v, want %v", test.in, string(b), test.jsonld)
+				t.Errorf("MarshalWithContext(%#v, %#v) = %v, want %v", test.in, test.ctx, string(b), test.jsonld)
 			}
 		}
 	}
