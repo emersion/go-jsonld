@@ -1,6 +1,7 @@
 package jsonld
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 )
@@ -36,6 +37,14 @@ var example2Out = &person{
 	Name: "Manu Sporny",
 	URL: &Resource{ID: "http://manu.sporny.org/"},
 	Image: &Resource{ID: "http://manu.sporny.org/images/manu.png"},
+}
+
+var example2Resource = &Resource{
+	Props: Props{
+		"http://schema.org/name": {"Manu Sporny"},
+		"http://schema.org/url": {&Resource{ID: "http://manu.sporny.org/"}},
+		"http://schema.org/image": {&Resource{ID: "http://manu.sporny.org/images/manu.png"}},
+	},
 }
 
 // TODO
@@ -193,6 +202,11 @@ var unmarshalTests = []struct{
 }{
 	{
 		jsonld: example2,
+		in: &Resource{},
+		out: example2Resource,
+	},
+	{
+		jsonld: example2,
 		in: &person{},
 		out: example2Out,
 	},
@@ -240,6 +254,43 @@ func TestUnmarshal(t *testing.T) {
 			t.Errorf("unmarshalResource(%v) = %v", test.jsonld, err)
 		} else if !reflect.DeepEqual(test.out, v) {
 			t.Errorf("unmarshalResource(%v) = %#v, want %#v", test.jsonld, v, test.out)
+		}
+	}
+}
+
+var marshalTests = []struct{
+	jsonld string
+	in interface{}
+}{
+	{
+		jsonld: example2,
+		in: example2Resource,
+	},
+	{
+		jsonld: example2,
+		in: example2Out,
+	},
+}
+
+func TestMarshal(t *testing.T) {
+	for _, test := range marshalTests {
+		var want interface{}
+		if err := json.Unmarshal([]byte(test.jsonld), &want); err != nil {
+			t.Fatalf("json.Unmarshal(want = %v) = %v", test.jsonld, err)
+		}
+
+		b, err := Marshal(test.in)
+		if err != nil {
+			t.Errorf("Marshal(%#v) = %v", test.in, err)
+		} else {
+			var v interface{}
+			if err := json.Unmarshal(b, &v); err != nil {
+				t.Fatalf("json.Unmarshal(got = %v) = %v", string(b), err)
+			}
+
+			if !reflect.DeepEqual(v, want) {
+				t.Errorf("Marshal(%#v) = %v, want %v", test.in, string(b), test.jsonld)
+			}
 		}
 	}
 }

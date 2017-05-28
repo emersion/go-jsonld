@@ -14,3 +14,11 @@ func (p Props) Type() string {
 	t, _ := p.Get(propType).(string)
 	return t
 }
+
+func (p Props) Set(k string, v interface{}) {
+	p[k] = []interface{}{v}
+}
+
+func (p Props) Add(k string, v interface{}) {
+	p[k] = append(p[k], v)
+}
