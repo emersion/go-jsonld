@@ -127,6 +127,9 @@ func unmarshalResource(r *Resource, v reflect.Value) error {
 		k := ft.Name
 		if tag := ft.Tag.Get("jsonld"); tag != "" {
 			k = tag
+			if k == "-" {
+				continue
+			}
 		}
 
 		if ft.Name == "JSONLDType" && f.Type() == reflect.TypeOf(Type{}) {
