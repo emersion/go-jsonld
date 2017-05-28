@@ -108,7 +108,7 @@ func formatValue(v interface{}) (interface{}, error) {
 	case *Resource:
 		return formatResource(v)
 	default:
-		return v, nil // TODO
+		return v, nil
 	}
 }
 
@@ -124,6 +124,24 @@ func unmarshalValue(src interface{}, dst reflect.Value) error {
 		} else {
 			return fmt.Errorf("jsonld: cannot unmarshal %v to %v", rsrc.Type(), dst.Type())
 		}
+	}
+}
+
+func marshalValue(v reflect.Value) (interface{}, error) {
+	switch v.Kind() {
+	case reflect.Struct:
+		r, err := marshalResource(v)
+		if err != nil {
+			return nil, err
+		}
+		return formatResource(r)
+	case reflect.Ptr:
+		if v.IsNil() {
+			return nil, nil
+		}
+		return marshalValue(reflect.Indirect(v))
+	default:
+		return v.Interface(), nil
 	}
 }
 
@@ -171,10 +189,15 @@ func Unmarshal(b []byte, v interface{}) error {
 // Marshal uses the smae rules as the encoding/json package, except for
 // *Resource values.
 func Marshal(v interface{}) ([]byte, error) {
-	raw, err := formatValue(v)
+	raw, err := marshalValue(reflect.ValueOf(v))
 	if err != nil {
 		return nil, err
 	}
 
-	return json.Marshal(raw)
+	formatted, err := formatValue(raw)
+	if err != nil {
+		return nil, err
+	}
+
+	return json.Marshal(formatted)
 }
