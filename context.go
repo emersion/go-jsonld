@@ -6,6 +6,7 @@ import (
 )
 
 type Context struct {
+	URL string
 	Lang string
 	Base string // Base URI to resolve relative URIs.
 	Vocab string // Base vocabulary.
@@ -79,6 +80,11 @@ func (ctx *Context) parseChild(m map[string]interface{}) (*Context, error) {
 	return child, nil
 }
 
+func (ctx *Context) fetchChild(url string)  (*Context, error) {
+	// TODO
+	return nil, errors.New("jsonld: fetching remote context not yet implemented")
+}
+
 func (ctx *Context) expand(u string) string {
 	if ctx == nil {
 		return u
@@ -124,6 +130,9 @@ func (ctx *Context) reduce(u string) (reduced string, term *Resource) {
 func formatContext(ctx *Context) (interface{}, error) {
 	if ctx == nil {
 		return nil, nil
+	}
+	if ctx.URL != "" {
+		return ctx.URL, nil
 	}
 
 	m := make(map[string]interface{})

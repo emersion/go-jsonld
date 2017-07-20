@@ -15,16 +15,19 @@ func parseResource(ctx *Context, m map[string]interface{}) (*Resource, error) {
 	n := new(Resource)
 
 	if rawCtx, ok := m["@context"]; ok {
-		// TODO: string, array
+		// TODO: case []interface{}
+		var err error
 		switch rawCtx := rawCtx.(type) {
 		case map[string]interface{}:
-			var err error
 			ctx, err = ctx.parseChild(rawCtx)
-			if err != nil {
-				return n, err
-			}
+		case string:
+			ctx, err = ctx.fetchChild(rawCtx)
 		default:
-			return n, errors.New("jsonld: malformed context")
+			err = errors.New("jsonld: malformed context")
+		}
+
+		if err != nil {
+			return n, err
 		}
 	}
 

@@ -47,13 +47,15 @@ var example2Resource = &Resource{
 	},
 }
 
-// TODO
+// TODO: Unmarshal
 const example4 = `{
   "@context": "http://json-ld.org/contexts/person.jsonld",
   "name": "Manu Sporny",
   "homepage": "http://manu.sporny.org/",
   "image": "http://manu.sporny.org/images/manu.png"
 }`
+
+var example4Out = example2Out
 
 const example5 = `{
   "@context":
@@ -270,6 +272,24 @@ var marshalTests = []struct{
 	{
 		jsonld: example2,
 		in: example2Out,
+	},
+	{
+		jsonld: example4,
+		in: example4Out,
+		ctx: &Context{
+			URL: "http://json-ld.org/contexts/person.jsonld",
+			Terms: map[string]*Resource{
+				"name": {ID: "http://schema.org/name"},
+				"image": {
+					ID: "http://schema.org/image",
+					Props: Props{propType: {"@id"}},
+				},
+				"homepage": {
+					ID: "http://schema.org/url",
+					Props: Props{propType: {"@id"}},
+				},
+			},
+		},
 	},
 	{
 		jsonld: example5,
