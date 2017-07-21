@@ -186,7 +186,7 @@ func Unmarshal(b []byte, v interface{}) error {
 
 // Marshal returns the JSON-LD encoding of v.
 //
-// Marshal uses the smae rules as the encoding/json package, except for
+// Marshal uses the same rules as the encoding/json package, except for
 // Resource values.
 func Marshal(v interface{}) ([]byte, error) {
 	return MarshalWithContext(v, nil)
