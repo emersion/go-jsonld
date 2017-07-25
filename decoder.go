@@ -29,7 +29,7 @@ func FetchContext(url string) (*Context, error) {
 
 	// TODO: that's ugly, I'm just lazy
 	var data struct {
-		Context map[string]interface{} `json:"@context"`
+		Context interface{} `json:"@context"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return nil, err
@@ -144,18 +144,8 @@ func (d *Decoder) parse(ctx *Context, v interface{}, t string) (interface{}, err
 
 func (d *Decoder) parseResource(ctx *Context, m map[string]interface{}) (*Resource, error) {
 	if rawCtx, ok := m["@context"]; ok {
-		// TODO: case []interface{}
 		var err error
-		switch rawCtx := rawCtx.(type) {
-		case map[string]interface{}:
-			ctx, err = d.parseContext(ctx, rawCtx)
-		case string:
-			ctx, err = d.fetchContext(ctx, rawCtx)
-		default:
-			err = errors.New("jsonld: malformed context")
-		}
-
-		if err != nil {
+		if ctx, err = d.parseContext(ctx, rawCtx); err != nil {
 			return nil, err
 		}
 	}
@@ -215,7 +205,27 @@ func (d *Decoder) parseResource(ctx *Context, m map[string]interface{}) (*Resour
 	return n, nil
 }
 
-func (d *Decoder) parseContext(ctx *Context, m map[string]interface{}) (*Context, error) {
+func (d *Decoder) parseContext(ctx *Context, v interface{}) (*Context, error) {
+	var err error
+	switch v := v.(type) {
+	case []interface{}:
+		for _, vv := range v {
+			ctx, err = d.parseContext(ctx, vv)
+			if err != nil {
+				return nil, err
+			}
+		}
+	case map[string]interface{}:
+		ctx, err = d.parseContextMap(ctx, v)
+	case string:
+		ctx, err = d.fetchContext(ctx, v)
+	default:
+		err = errors.New("jsonld: malformed context")
+	}
+	return ctx, err
+}
+
+func (d *Decoder) parseContextMap(ctx *Context, m map[string]interface{}) (*Context, error) {
 	child := ctx.newChild(nil)
 
 	if lang, ok := m["@lang"].(string); ok {

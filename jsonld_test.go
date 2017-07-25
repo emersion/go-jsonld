@@ -218,6 +218,24 @@ const example20 = `{
   "picture": "http://twitter.com/account/profile_image/markuslanthaler"
 }`
 
+const example20MultipleContexts = `{
+  "@context":
+  [
+    {
+      "foaf": "http://xmlns.com/foaf/0.1/",
+      "foaf:homepage": { "@type": "@id" }
+    },
+    {
+      "picture": { "@id": "foaf:depiction", "@type": "@id" }
+    }
+  ],
+  "@id": "http://me.markus-lanthaler.com/",
+  "@type": "foaf:Person",
+  "foaf:name": "Markus Lanthaler",
+  "foaf:homepage": "http://www.markus-lanthaler.com/",
+  "picture": "http://twitter.com/account/profile_image/markuslanthaler"
+}`
+
 var example20Out = &foafPerson{
 	JSONLDType: Type{URI: "http://xmlns.com/foaf/0.1/Person"},
 	ID: "http://me.markus-lanthaler.com/",
@@ -286,6 +304,11 @@ var unmarshalTests = []struct{
 	},
 	{
 		jsonld: example20,
+		in: &foafPerson{},
+		out: example20Out,
+	},
+	{
+		jsonld: example20MultipleContexts,
 		in: &foafPerson{},
 		out: example20Out,
 	},
