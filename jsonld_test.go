@@ -13,6 +13,28 @@ type person struct {
 	Image *Resource `jsonld:"http://schema.org/image"`
 }
 
+var personContext = &Context{
+	URL: "http://json-ld.org/contexts/person.jsonld",
+	Terms: map[string]*Resource{
+		"name": {ID: "http://schema.org/name"},
+		"image": {
+			ID: "http://schema.org/image",
+			Props: Props{propType: {"@id"}},
+		},
+		"homepage": {
+			ID: "http://schema.org/url",
+			Props: Props{propType: {"@id"}},
+		},
+	},
+}
+
+type personWithContext struct {
+	ID string `jsonld:"@id"`
+	Name string `jsonld:"name"`
+	URL *Resource `jsonld:"homepage"`
+	Image *Resource `jsonld:"image"`
+}
+
 type restaurant struct {
 	ID string `jsonld:"@id"`
 	Name string `jsonld:"http://schema.org/name"`
@@ -34,6 +56,12 @@ const example2 = `{
 }`
 
 var example2Out = &person{
+	Name: "Manu Sporny",
+	URL: &Resource{ID: "http://manu.sporny.org/"},
+	Image: &Resource{ID: "http://manu.sporny.org/images/manu.png"},
+}
+
+var example2OutWithContext = &personWithContext{
 	Name: "Manu Sporny",
 	URL: &Resource{ID: "http://manu.sporny.org/"},
 	Image: &Resource{ID: "http://manu.sporny.org/images/manu.png"},
@@ -201,6 +229,7 @@ var unmarshalTests = []struct{
 	jsonld string
 	in interface{}
 	out interface{}
+	ctx *Context
 }{
 	{
 		jsonld: example2,
@@ -247,12 +276,18 @@ var unmarshalTests = []struct{
 		in: &foafPerson{},
 		out: example20Out,
 	},
+	{
+		jsonld: example2,
+		in: &personWithContext{},
+		ctx: personContext,
+		out: example2OutWithContext,
+	},
 }
 
 func TestUnmarshal(t *testing.T) {
 	for _, test := range unmarshalTests {
 		v := test.in
-		if err := Unmarshal([]byte(test.jsonld), v); err != nil {
+		if err := UnmarshalWithContext([]byte(test.jsonld), v, test.ctx); err != nil {
 			t.Errorf("unmarshalResource(%v) = %v", test.jsonld, err)
 		} else if !reflect.DeepEqual(test.out, v) {
 			t.Errorf("unmarshalResource(%v) = %#v, want %#v", test.jsonld, v, test.out)

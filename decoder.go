@@ -3,12 +3,16 @@ package jsonld
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 )
 
 // Decoder decodes JSON-LD values.
 type Decoder struct {
+	// If specified, this context will be used when decoding values.
+	Context *Context
+
 	dec *json.Decoder
 }
 
@@ -34,7 +38,7 @@ func (d *Decoder) Decode(v interface{}) error {
 		return errors.New("jsonld: cannot unmarshal non-pointer")
 	}
 
-	return unmarshalValue(raw, reflect.Indirect(rv))
+	return d.unmarshal(raw, reflect.Indirect(rv))
 }
 
 func (d *Decoder) parse(ctx *Context, v interface{}, t string) (interface{}, error) {
@@ -220,4 +224,70 @@ func (d *Decoder) parseContext(ctx *Context, m map[string]interface{}) (*Context
 
 func (d *Decoder) fetchContext(ctx *Context, url string) (*Context, error) {
 	return nil, errors.New("jsonld: fetching remote contexts is not yet implemented")
+}
+
+func (d *Decoder) unmarshal(src interface{}, dst reflect.Value) error {
+	switch src := src.(type) {
+	case *Resource:
+		return d.unmarshalResource(src, dst)
+	default:
+		rsrc := reflect.ValueOf(src)
+		if dst.Type() == rsrc.Type() {
+			dst.Set(rsrc)
+			return nil
+		} else {
+			return fmt.Errorf("jsonld: cannot unmarshal %v to %v", rsrc.Type(), dst.Type())
+		}
+	}
+}
+
+func (d *Decoder) unmarshalResource(r *Resource, v reflect.Value) error {
+	// TODO: do not panic
+
+	t := v.Type()
+
+	if t == reflect.TypeOf(Resource{}) {
+		// TODO: do not copy value
+		v.Set(reflect.ValueOf(*r))
+		return nil
+	}
+
+	for i := 0; i < t.NumField(); i++ {
+		f := v.Field(i)
+		ft := t.Field(i)
+
+		if wantTypeURI, ok := typeField(ft); ok {
+			typeURI := r.Props.Type()
+			if wantTypeURI != typeURI {
+				return fmt.Errorf("jsonld: mismatched type %v", wantTypeURI)
+			}
+			f.Set(reflect.ValueOf(Type{typeURI}))
+		} else {
+			k, ok := getFieldURI(d.Context, ft)
+			if !ok {
+				continue
+			}
+
+			if k == "@id" {
+				f.SetString(r.ID)
+			} else {
+				fv := r.Props.Get(k)
+				if fv == nil {
+					continue
+				}
+
+				if f.Kind() == reflect.Ptr {
+					if f.IsNil() {
+						f.Set(reflect.New(f.Type().Elem()))
+					}
+					f = reflect.Indirect(f)
+				}
+				if err := d.unmarshal(fv, f); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
 }

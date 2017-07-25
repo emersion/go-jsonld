@@ -4,8 +4,6 @@ package jsonld
 
 import (
 	"bytes"
-	"fmt"
-	"reflect"
 )
 
 const (
@@ -25,40 +23,6 @@ const (
 
 type Type struct {
 	URI string
-}
-
-func unmarshalValue(src interface{}, dst reflect.Value) error {
-	switch src := src.(type) {
-	case *Resource:
-		// TODO: remove this
-		return unmarshalResource(src, dst)
-	default:
-		rsrc := reflect.ValueOf(src)
-		if dst.Type() == rsrc.Type() {
-			dst.Set(rsrc)
-			return nil
-		} else {
-			return fmt.Errorf("jsonld: cannot unmarshal %v to %v", rsrc.Type(), dst.Type())
-		}
-	}
-}
-
-func marshalValue(v reflect.Value) (interface{}, error) {
-	switch v.Kind() {
-	case reflect.Struct:
-		r, err := marshalResource(v)
-		if err != nil {
-			return nil, err
-		}
-		return r, nil
-	case reflect.Ptr:
-		if v.IsNil() {
-			return nil, nil
-		}
-		return marshalValue(reflect.Indirect(v))
-	default:
-		return v.Interface(), nil
-	}
 }
 
 // Unmarshal parses the JSON-LD-encoded data and stores the result in the value
@@ -82,7 +46,15 @@ func marshalValue(v reflect.Value) (interface{}, error) {
 // as the encoding/json package, except for resources which are stored as
 // *Resource.
 func Unmarshal(b []byte, v interface{}) error {
-	return NewDecoder(bytes.NewReader(b)).Decode(v)
+	return UnmarshalWithContext(b, v, nil)
+}
+
+// UnmarshalWithContext parses the JSON-LD-encoded data with the context ctx and
+// stores the result in the value pointed to by v.
+func UnmarshalWithContext(b []byte, v interface{}, ctx *Context) error {
+	dec := NewDecoder(bytes.NewReader(b))
+	dec.Context = ctx
+	return dec.Decode(v)
 }
 
 // Marshal returns the JSON-LD encoding of v.

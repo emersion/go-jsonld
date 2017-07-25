@@ -21,18 +21,18 @@ func NewEncoder(w io.Writer) *Encoder {
 
 // Encode encodes a JSON-LD value.
 func (e *Encoder) Encode(v interface{}) error {
-	raw, err := marshalValue(reflect.ValueOf(v))
+	raw, err := e.marshal(reflect.ValueOf(v))
 	if err != nil {
 		return err
 	}
 
-	raw, err = formatValue(raw, e.Context)
+	raw, err = e.format(raw)
 	if err != nil {
 		return err
 	}
 
 	if e.Context != nil {
-		formattedCtx, err := formatContext(e.Context)
+		formattedCtx, err := e.formatContext(e.Context)
 		if err != nil {
 			return err
 		}
@@ -49,17 +49,18 @@ func (e *Encoder) Encode(v interface{}) error {
 	return e.enc.Encode(raw)
 }
 
-func formatValue(v interface{}, ctx *Context) (interface{}, error) {
+func (e *Encoder) format(v interface{}) (interface{}, error) {
 	switch v := v.(type) {
 	case *Resource:
-		return formatResource(v, ctx)
+		return e.formatResource(v)
 	default:
 		return v, nil
 	}
 }
 
-func formatResource(r *Resource, ctx *Context) (map[string]interface{}, error) {
+func (e *Encoder) formatResource(r *Resource) (map[string]interface{}, error) {
 	m := make(map[string]interface{})
+	ctx := e.Context
 
 	if r.ID != "" {
 		// TODO: use ctx.Base to produce relative URIs when possible
@@ -88,12 +89,110 @@ func formatResource(r *Resource, ctx *Context) (map[string]interface{}, error) {
 
 		var err error
 		if len(values) == 1 {
-			m[k], err = formatValue(values[0], ctx)
+			m[k], err = e.format(values[0])
 		} else {
-			m[k], err = formatValue(values, ctx)
+			m[k], err = e.format(values)
 		}
 		if err != nil {
 			return m, err
+		}
+	}
+
+	return m, nil
+}
+
+func (e *Encoder) marshal(v reflect.Value) (interface{}, error) {
+	switch v.Kind() {
+	case reflect.Struct:
+		r, err := e.marshalResource(v)
+		if err != nil {
+			return nil, err
+		}
+		return r, nil
+	case reflect.Ptr:
+		if v.IsNil() {
+			return nil, nil
+		}
+		return e.marshal(reflect.Indirect(v))
+	default:
+		return v.Interface(), nil
+	}
+}
+
+func (e *Encoder) marshalResource(v reflect.Value) (*Resource, error) {
+	// TODO: don't panic
+
+	// TODO: use &Resource instead
+	if v.Type() == reflect.TypeOf(Resource{}) {
+		r := v.Interface().(Resource)
+		return &r, nil
+	}
+
+	r := new(Resource)
+
+	t := v.Type()
+
+	for i := 0; i < t.NumField(); i++ {
+		f := v.Field(i)
+		ft := t.Field(i)
+
+		if typeURI, ok := typeField(ft); ok {
+			r.Props.Set(propType, typeURI)
+		} else {
+			k, ok := getFieldURI(e.Context, ft)
+			if !ok {
+				continue
+			}
+
+			if k == "@id" {
+				r.ID = f.String()
+			} else {
+				raw, err := e.marshal(f)
+				if err != nil {
+					return r, err
+				}
+
+				if r.Props == nil {
+					r.Props = make(Props)
+				}
+
+				r.Props.Add(k, raw)
+			}
+		}
+	}
+
+	return r, nil
+}
+
+func (e *Encoder) formatContext(ctx *Context) (interface{}, error) {
+	if ctx == nil {
+		return nil, nil
+	}
+	if ctx.URL != "" {
+		return ctx.URL, nil
+	}
+
+	m := make(map[string]interface{})
+
+	if ctx.Lang != "" {
+		m["@lang"] = ctx.Lang
+	}
+	if ctx.Base != "" {
+		m["@base"] = ctx.Base
+	}
+	if ctx.Vocab != "" {
+		m["@vocab"] = ctx.Vocab
+	}
+
+	for k, term := range ctx.Terms {
+		if len(term.Props) == 0 {
+			m[k] = term.ID
+		} else {
+			raw, err := e.formatResource(term)
+			if err != nil {
+				return m, err
+			}
+			m[k] = raw
 		}
 	}
 

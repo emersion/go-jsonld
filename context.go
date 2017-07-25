@@ -53,7 +53,11 @@ func (ctx *Context) expand(u string) string {
 			return u // Absolute
 		}
 	} else {
-		return ctx.Vocab + u
+		if term, ok := ctx.Terms[u]; ok && term != nil {
+			return term.ID
+		} else {
+			return ctx.Vocab + u
+		}
 	}
 }
 
@@ -79,39 +83,4 @@ func (ctx *Context) reduce(u string) (reduced string, term *Resource) {
 	}
 
 	return u, nil
-}
-
-func formatContext(ctx *Context) (interface{}, error) {
-	if ctx == nil {
-		return nil, nil
-	}
-	if ctx.URL != "" {
-		return ctx.URL, nil
-	}
-
-	m := make(map[string]interface{})
-
-	if ctx.Lang != "" {
-		m["@lang"] = ctx.Lang
-	}
-	if ctx.Base != "" {
-		m["@base"] = ctx.Base
-	}
-	if ctx.Vocab != "" {
-		m["@vocab"] = ctx.Vocab
-	}
-
-	for k, term := range ctx.Terms {
-		if len(term.Props) == 0 {
-			m[k] = term.ID
-		} else {
-			raw, err := formatResource(term, ctx)
-			if err != nil {
-				return m, err
-			}
-			m[k] = raw
-		}
-	}
-
-	return m, nil
 }
