@@ -4,7 +4,6 @@ package jsonld
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"reflect"
 )
@@ -26,15 +25,6 @@ const (
 
 type Type struct {
 	URI string
-}
-
-func formatValue(v interface{}, ctx *Context) (interface{}, error) {
-	switch v := v.(type) {
-	case *Resource:
-		return formatResource(v, ctx)
-	default:
-		return v, nil
-	}
 }
 
 func unmarshalValue(src interface{}, dst reflect.Value) error {
@@ -105,30 +95,11 @@ func Marshal(v interface{}) ([]byte, error) {
 
 // MarshalWithContext returns the JSON-LD encoding of v with the context ctx.
 func MarshalWithContext(v interface{}, ctx *Context) ([]byte, error) {
-	raw, err := marshalValue(reflect.ValueOf(v))
-	if err != nil {
+	var b bytes.Buffer
+	enc := NewEncoder(&b)
+	enc.Context = ctx
+	if err := enc.Encode(v); err != nil {
 		return nil, err
 	}
-
-	formatted, err := formatValue(raw, ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if ctx != nil {
-		formattedCtx, err := formatContext(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if m, ok := formatted.(map[string]interface{}); ok {
-			m["@context"] = formattedCtx
-		} else {
-			formatted = map[string]interface{}{
-				"@context": formattedCtx,
-				"@value": formatted,
-			}
-		}
-	}
-
-	return json.Marshal(formatted)
+	return b.Bytes(), nil
 }
