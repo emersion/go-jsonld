@@ -1,7 +1,6 @@
 package jsonld
 
 import (
-	"errors"
 	"strings"
 )
 
@@ -38,51 +37,6 @@ func (ctx *Context) newChild(child *Context) *Context {
 		}
 	}
 	return child
-}
-
-func (ctx *Context) parseChild(m map[string]interface{}) (*Context, error) {
-	child := ctx.newChild(nil)
-
-	if lang, ok := m["@lang"].(string); ok {
-		child.Lang = lang
-	}
-	if base, ok := m["@base"].(string); ok {
-		child.Base = base
-	}
-	if vocab, ok := m["@vocab"].(string); ok {
-		child.Vocab = vocab
-	}
-
-	for k, v := range m {
-		if len(k) > 0 && k[0] == '@' {
-			continue
-		}
-
-		v, err := parseValue(nil, v, "")
-		if err != nil {
-			return nil, err
-		}
-
-		var term *Resource
-		switch v := v.(type) {
-		case *Resource:
-			term = v
-		case string:
-			term = &Resource{ID: v}
-		default:
-			if v != nil {
-				return nil, errors.New("jsonld: malformed context value")
-			}
-		}
-		child.Terms[k] = term
-	}
-
-	return child, nil
-}
-
-func (ctx *Context) fetchChild(url string)  (*Context, error) {
-	// TODO
-	return nil, errors.New("jsonld: fetching remote context not yet implemented")
 }
 
 func (ctx *Context) expand(u string) string {
