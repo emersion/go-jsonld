@@ -5,11 +5,38 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"reflect"
 )
 
 // FetchContextFunc fetches remote contexts.
 type FetchContextFunc func(url string) (*Context, error)
+
+// FetchContext fetches remote contexts with http.DefaultClient.
+func FetchContext(url string) (*Context, error) {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Accept", "application/ld+json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// TODO: that's ugly, I'm just lazy
+	var data struct {
+		Context map[string]interface{} `json:"@context"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, err
+	}
+
+	return new(Decoder).parseContext(nil, data.Context)
+}
 
 // Decoder decodes JSON-LD values.
 type Decoder struct {
