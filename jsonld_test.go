@@ -2,7 +2,9 @@ package jsonld
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -75,7 +77,6 @@ var example2Resource = &Resource{
 	},
 }
 
-// TODO: Unmarshal
 const example4 = `{
   "@context": "http://json-ld.org/contexts/person.jsonld",
   "name": "Manu Sporny",
@@ -230,6 +231,7 @@ var unmarshalTests = []struct{
 	in interface{}
 	out interface{}
 	ctx *Context
+	fetch FetchContextFunc
 }{
 	{
 		jsonld: example2,
@@ -240,6 +242,17 @@ var unmarshalTests = []struct{
 		jsonld: example2,
 		in: &person{},
 		out: example2Out,
+	},
+	{
+		jsonld: example4,
+		in: &person{},
+		out: example4Out,
+		fetch: func(url string) (*Context, error) {
+			if url != "http://json-ld.org/contexts/person.jsonld" {
+				return nil, fmt.Errorf("invalid context URL: %v", url)
+			}
+			return personContext, nil
+		},
 	},
 	{
 		jsonld: example5,
@@ -286,8 +299,12 @@ var unmarshalTests = []struct{
 
 func TestUnmarshal(t *testing.T) {
 	for _, test := range unmarshalTests {
+		dec := NewDecoder(strings.NewReader(test.jsonld))
+		dec.Context = test.ctx
+		dec.FetchContext = test.fetch
+
 		v := test.in
-		if err := UnmarshalWithContext([]byte(test.jsonld), v, test.ctx); err != nil {
+		if err := dec.Decode(v); err != nil {
 			t.Errorf("unmarshalResource(%v) = %v", test.jsonld, err)
 		} else if !reflect.DeepEqual(test.out, v) {
 			t.Errorf("unmarshalResource(%v) = %#v, want %#v", test.jsonld, v, test.out)

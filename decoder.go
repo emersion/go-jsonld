@@ -8,10 +8,16 @@ import (
 	"reflect"
 )
 
+// FetchContextFunc fetches remote contexts.
+type FetchContextFunc func(url string) (*Context, error)
+
 // Decoder decodes JSON-LD values.
 type Decoder struct {
-	// If specified, this context will be used when decoding values.
+	// Context, if non-nil, will be used when decoding values.
 	Context *Context
+	// FetchContext, if non-nil, will be called to fetch remote contexts. By
+	// default, remote contexts are not fetched.
+	FetchContext FetchContextFunc
 
 	dec *json.Decoder
 }
@@ -223,7 +229,11 @@ func (d *Decoder) parseContext(ctx *Context, m map[string]interface{}) (*Context
 }
 
 func (d *Decoder) fetchContext(ctx *Context, url string) (*Context, error) {
-	return nil, errors.New("jsonld: fetching remote contexts is not yet implemented")
+	// TODO: inherit from ctx
+	if d.FetchContext != nil {
+		return d.FetchContext(url)
+	}
+	return nil, errors.New("jsonld: fetching remote contexts is disabled")
 }
 
 func (d *Decoder) unmarshal(src interface{}, dst reflect.Value) error {
